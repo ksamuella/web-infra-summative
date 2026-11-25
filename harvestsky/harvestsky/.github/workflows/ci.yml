@@ -1,0 +1,65 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t harvestsky .
+      - name: Smoke test the container
+        run: |
+          docker run -d --name hs -p 3000:3000 \
+            -e AUTH_SECRET="$(openssl rand -hex 32)" -e OPENWEATHER_API_KEY=dummy harvestsky
+          for i in $(seq 1 15); do
+            curl -fsS http://localhost:3000/health && exit 0
+            sleep 1
+          done
+          docker logs hs
+          exit 1
+
+  # Deploys to Web01/Web02 on every push to main. Turned off until you set the repository
+  # variable ENABLE_DEPLOY=true and add the secrets listed in the README ("CI/CD").
+  deploy:
+    needs: [test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.WEB01_HOST }}" "${{ secrets.WEB02_HOST }}" >> ~/.ssh/known_hosts
+      - name: Write production env file
+        run: |
+          printf '%s\n' "${{ secrets.OPENWEATHER_API_KEY }}" | sed 's/^/OPENWEATHER_API_KEY=/' >  .env.production
+          printf '%s\n' "${{ secrets.AUTH_SECRET }}"         | sed 's/^/AUTH_SECRET=/'         >> .env.production
+          printf '%s\n' "${{ secrets.SYNC_SECRET }}"         | sed 's/^/SYNC_SECRET=/'         >> .env.production
+      - name: Deploy
+        env:
+          LB_IP: ${{ secrets.LB_HOST }}
+        run: |
+          ./deploy/deploy.sh \
+            "${{ secrets.SSH_USER }}@${{ secrets.WEB01_HOST }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.WEB02_HOST }}"
+      - name: Verify load balancing
+        run: |
+          for i in 1 2 3 4 5 6; do curl -fsS "http://${{ secrets.LB_HOST }}/api/whoami"; echo; done

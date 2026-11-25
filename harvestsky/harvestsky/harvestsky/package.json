@@ -1,0 +1,15 @@
+{
+  "name": "harvestsky",
+  "version": "1.0.0",
+  "description": "Weather-based farm advisor for East Africa, built on the OpenWeather API and deployable behind a load balancer.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/unit.test.js test/api.test.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "license": "MIT",
+  "private": true
+}
