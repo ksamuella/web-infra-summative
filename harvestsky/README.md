@@ -6,10 +6,10 @@ It is deployed on two web servers behind a load balancer, and accounts work on b
 
 | | |
 |---|---|
-| **Demo video (≤ 2 min)** | `TODO: paste YouTube/Vimeo link` |
-| **Live site (load balancer)** | `TODO: http://LB01_IP/` |
-| **Web01 / Web02 (direct)** | `TODO: http://WEB01_IP/` · `TODO: http://WEB02_IP/` |
-| **Demo login** | `TODO: username / password (create it on the live site, see "Credentials")` |
+| **Demo video (≤ 2 min)** |  |
+| **Live site (load balancer)** | |
+| **Web01 / Web02 (direct)** | (http://13.40.178.46) |
+| **Demo login** |  |
 
 ---
 
